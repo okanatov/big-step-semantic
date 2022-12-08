@@ -1,45 +1,43 @@
-provide:
-	*,
-	type *
+include string-dict
+
+data Elems:
+	| num(value)
+	| bool(value)
+	| multiply(left, right)
+	| add(left, right)
+	| lessthan(left, right)
+	| variable(name)
+	| assign(name, expr)
+	| donothing()
 end
 
-data Num             : num(value) end
-data Bool            : bool(value) end
-data Multiply        : multiply(left, right) end
-data Divide          : divide(left, right) end
-data Add             : add(left, right) end
-data Substract       : substract(left, right) end
-data LessThan        : lessthan(left, right) end
-data LessThanOrEqual : lessthanorequal(left, right) end
-data MoreThan        : morethan(left, right) end
-data MoreThanOrEqual : morethanorequal(left, right) end
-data Equal           : equal(left, right) end
-data NotEqual        : notequal(left, right) end
-
-fun evaluate<T>(elem :: T) -> Any:
-	cases (T) elem:
+fun evaluate(elem :: Elems, env :: StringDict<Elems>) -> Any:
+	cases (Elems) elem:
 		| num(n) => elem
 		| bool(n) => elem
-		| multiply(left, right) => num(evaluate(left).value * evaluate(right).value)
-		| divide(left, right) => num(evaluate(left).value / evaluate(right).value)
-		| add(left, right) => num(evaluate(left).value + evaluate(right).value)
-		| substract(left, right) => num(evaluate(left).value - evaluate(right).value)
-		| lessthan(left, right) => bool(evaluate(left).value < evaluate(right).value)
-		| lessthanorequal(left, right) => bool(evaluate(lessthan(left, right)).value
-			                               or
-						       evaluate(equal(left, right)).value)
-
-		| morethan(left, right) => bool(evaluate(left).value > evaluate(right).value)
-		| morethanorequal(left, right) => bool(evaluate(morethan(left, right)).value
-			                               or
-						       evaluate(equal(left, right)).value)
-
-		| equal(left, right) => bool(evaluate(left).value == evaluate(right).value)
-		| notequal(left, right) => bool(not(evaluate(equal(left, right)).value))
+		| multiply(left, right) => num(evaluate(left, env).value * evaluate(right, env).value)
+		| add(left, right) => num(evaluate(left, env).value + evaluate(right, env).value)
+		| lessthan(left, right) => bool(evaluate(left, env).value < evaluate(right, env).value)
+		| variable(name) => num(env.get-value(name))
+		| assign(name, expr) => env.set(name, evaluate(expr, env).value)
+		| donothing() => env
 	end
 where:
-	evaluate<Number>(num(5)).value is 5
-	evaluate(bool(true)).value is true
-	evaluate(equal(num(5), num(5))).value is true
-	evaluate(notequal(num(5), num(5))).value is false
+	evaluate(num(5), [string-dict:]).value is 5
+	evaluate(bool(true), [string-dict:]).value is true
+	evaluate(add(multiply(num(1), num(2)), multiply(num(3), num(4))), [string-dict:]).value is 14
+	evaluate(variable("x"), [string-dict: "x", 4]).value is 4
+	evaluate(lessthan(add(variable("x"), num(2)), variable("y")), [string-dict: "x", 2, "y", 5]).value is true
+
+	evaluate(assign("x", num(5)), [string-dict:]) is [string-dict: "x", 5]
+
+	evaluate(assign("x", add(multiply(num(1), num(2)),
+                                 multiply(num(3), num(4)))),
+		 [string-dict:]
+	        ) is [string-dict: "x", 14]
+
+	evaluate(assign("z", lessthan(add(variable("x"), num(2)),
+			              variable("y"))),
+                 [string-dict: "x", 2, "y", 5]
+	        ) is [string-dict: "x", 2, "y", 5, "z", true]
 end
