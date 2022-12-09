@@ -1,18 +1,15 @@
 import s-exp as S
 import lists as L
 
-data ArithC:
-    | numC(n :: Number)
-    | plusC(l :: ArithC, r :: ArithC)
-    | multC(l :: ArithC, r :: ArithC)
-    | lessThanC(l :: ArithC, r :: ArithC)
-    | assignC(nm :: String, e :: ArithC)
-    | variableC(n :: String)
-end
+include string-dict
 
-fun parse(s :: S.S-Exp) -> ArithC:
+include file("data.arr")
+include file("evaluation.arr")
+
+fun parse(s :: S.S-Exp) -> Instructions:
+    doc: "simple parser based on s-expr"
     cases (S.S-Exp) s:
-        | s-num(n) => numC(n)
+        | s-num(n) => numI(n)
         | s-list(shadow s) =>
             cases (List) s:
                 | empty => raise("parse: unexpected empty list")
@@ -20,29 +17,45 @@ fun parse(s :: S.S-Exp) -> ArithC:
                     argL = L.get(args, 0)
                     argR = L.get(args, 1)
                     if op.s == "+":
-                        plusC(parse(argL), parse(argR))
+                        plusI(parse(argL), parse(argR))
                     else if op.s == "*":
-                        multC(parse(argL), parse(argR))
+                        multI(parse(argL), parse(argR))
                     else if op.s == "<":
-                        lessThanC(parse(argL), parse(argR))
+                        lessThanI(parse(argL), parse(argR))
                     else if op.s == "=":
-                        assignC(argL.s, parse(argR))
+                        assignI(argL.s, parse(argR))
+                    else if op.s == "if":
+                        argAlt = L.get(args, 2)
+                        ifI(parse(argL), parse(argR), parse(argAlt))
                     end
             end
-        | s-sym(shadow s) => variableC(s)
+        | s-sym(shadow s) => variableI(s)
         | else =>
-            raise("parse: not number or list")
+            raise("parse: not number, symbol or list")
     end
     where:
-    parse(S.read-s-exp("(+ 1 2)")) is plusC(numC(1), numC(2))
-    parse(S.read-s-exp("(< 1 2)")) is lessThanC(numC(1), numC(2))
-    parse(S.read-s-exp("(< (+ 1 2) 2)")) is lessThanC((plusC(numC(1), numC(2))), numC(2))
-    parse(S.read-s-exp("(= x 2)")) is assignC("x", numC(2))
+    parse(S.read-s-exp("(+ 1 2)")) is plusI(numI(1), numI(2))
+    parse(S.read-s-exp("(< 1 2)")) is lessThanI(numI(1), numI(2))
+    parse(S.read-s-exp("(< (+ 1 2) 2)")) is lessThanI((plusI(numI(1), numI(2))), numI(2))
+    parse(S.read-s-exp("(= x 2)")) is assignI("x", numI(2))
 
     parse(S.read-s-exp("(= x (+ (* 1 2) (* 3 4)))"))
-        is assignC("x", plusC(multC(numC(1), numC(2)), multC(numC(3), numC(4))))
+        is assignI("x", plusI(multI(numI(1), numI(2)), multI(numI(3), numI(4))))
 
-    parse(S.read-s-exp("x")) is variableC("x")
-    parse(S.read-s-exp("(< x 2)")) is lessThanC(variableC("x"), numC(2))
+    parse(S.read-s-exp("x")) is variableI("x")
+    parse(S.read-s-exp("(< x 2)")) is lessThanI(variableI("x"), numI(2))
+
+    parse(S.read-s-exp("(if (< 1 2) (= x 2) (= x 3))"))
+        is ifI(lessThanI(numI(1), numI(2)),
+               assignI("x", numI(2)),
+               assignI("x", numI(3)))
+end
+
+check:
+    expr :: String = "(= x 2)"
+    parsed :: Instructions = parse(S.read-s-exp(expr))
+
+    res :: Any = evaluate(parsed, [string-dict:])
+    res is [string-dict: "x", 2]
 end
 
