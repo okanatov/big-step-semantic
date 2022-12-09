@@ -27,6 +27,10 @@ fun parse(s :: S.S-Exp) -> Instructions:
                     else if op.s == "if":
                         argAlt = L.get(args, 2)
                         ifI(parse(argL), parse(argR), parse(argAlt))
+                    else if op.s == "block":
+                        for fold(res from sequenceI(parse(argL), parse(argR)), elem from args.rest.rest):
+                            sequenceI(res, parse(elem))
+                        end
                     end
             end
         | s-sym(shadow s) => variableI(s)
@@ -49,13 +53,25 @@ fun parse(s :: S.S-Exp) -> Instructions:
         is ifI(lessThanI(numI(1), numI(2)),
                assignI("x", numI(2)),
                assignI("x", numI(3)))
+
+    parse(S.read-s-exp("(block (= x 2) (= y (+ x 1)))"))
+        is sequenceI(assignI("x", numI(2)), assignI("y", plusI(variableI("x"), numI(1))))
+
+    parse(S.read-s-exp("(block (= x 2) (= y 3) (= z 4) (= x (< x y)))"))
+        is sequenceI(
+                     sequenceI(
+                               sequenceI(
+                                         assignI("x", numI(2)),
+                                         assignI("y", numI(3))),
+                               assignI("z", numI(4))),
+                     assignI("x", lessThanI(variableI("x"), variableI("y"))))
 end
 
 check:
-    expr :: String = "(= x 2)"
+    expr :: String = "(block (= x 2) (= y (+ x 2)) (= z (+ y 2)))"
     parsed :: Instructions = parse(S.read-s-exp(expr))
 
     res :: Any = evaluate(parsed, [string-dict:])
-    res is [string-dict: "x", 2]
+    res is [string-dict: "x", 2, "y", 4, "z", 6]
 end
 

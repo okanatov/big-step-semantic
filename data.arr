@@ -13,5 +13,6 @@ data Instructions:
     | variableI(n :: String)
     | doNothingI()
     | ifI(cond, cons, alt)
+    | sequenceI(first, second)
 end
 

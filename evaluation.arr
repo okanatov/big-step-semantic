@@ -25,6 +25,7 @@ fun evaluate(elem :: Instructions, env :: StringDict<Instructions>) -> Any:
                 | evaluate(cond, env) == boolI(true) then: evaluate(cons, env)
                 | otherwise: evaluate(alt, env)
             end
+        | sequenceI(first, second) => evaluate(second, evaluate(first, env))
     end
     where:
     evaluate(numI(5), [string-dict:]) is numI(5)
@@ -52,5 +53,12 @@ fun evaluate(elem :: Instructions, env :: StringDict<Instructions>) -> Any:
                  assignI("x", numI(4))), # alternative
              [string-dict: "x", 5])
          is [string-dict: "x", 4]
+
+
+    seq1 = assignI("x", numI(5))
+    seq2 = assignI("x", plusI(variableI("x"), plusI(numI(2), numI(2))))
+
+    evaluate(sequenceI(seq1, seq2), [string-dict:])
+        is [string-dict: "x", 9]
 end
 
