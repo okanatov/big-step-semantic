@@ -12,7 +12,7 @@ data Instructions:
     | assignI(n :: String, e :: Instructions)
     | variableI(n :: String)
     | doNothingI()
-    | ifI(cond, cons, alt)
-    | sequenceI(first, second)
+    | ifI(cond :: Instructions, cons :: Instructions, alt :: Instructions)
+    | sequenceI(first :: Instructions, second :: Instructions)
 end
 
