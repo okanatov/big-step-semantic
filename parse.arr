@@ -31,6 +31,10 @@ fun parse(s :: S.S-Exp) -> Instructions:
                         for fold(res from sequenceI(parse(argL), parse(argR)), elem from args.rest.rest):
                             sequenceI(res, parse(elem))
                         end
+                    else if op.s == "while":
+                        whileI(parse(argL), parse(argR))
+                    else:
+                        raise("parse: wrong keyword")
                     end
             end
         | s-sym(shadow s) => variableI(s)
@@ -65,6 +69,9 @@ fun parse(s :: S.S-Exp) -> Instructions:
                                          assignI("y", numI(3))),
                                assignI("z", numI(4))),
                      assignI("x", lessThanI(variableI("x"), variableI("y"))))
+
+    parse(S.read-s-exp("(while (< x 5) (= x (* x 3)))"))
+        is whileI(lessThanI(variableI("x"), numI(5)), assignI("x", multI(variableI("x"), numI(3))))
 end
 
 check:

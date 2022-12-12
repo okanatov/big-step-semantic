@@ -14,5 +14,6 @@ data Instructions:
     | doNothingI()
     | ifI(cond :: Instructions, cons :: Instructions, alt :: Instructions)
     | sequenceI(first :: Instructions, second :: Instructions)
+    | whileI(cond :: Instructions, body :: Instructions)
 end
 
